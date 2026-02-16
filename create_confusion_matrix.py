@@ -60,15 +60,67 @@ def call_gemini(batch_df):
         raise RuntimeError("GEMINI_API_KEY environment variable not set")
 
     prompt = f"""
-You are given tabular data in JSON format.
-For EACH row, produce a JSON object with:
-- true_label
-- predicted_label
+You are a veterinary radiology classification system.
 
-Return ONLY valid JSON in this exact format:
-[
-  {{"true_label": "...", "predicted_label": "..."}}
-]
+Your task is to classify a canine thoracic radiology report into predefined binary labels.
+
+Only use the report text in the colomns labeled "Findings (original radiologist report)" and "Conclusions (original radiologist report)" to determine the presence of abnormalities. Do not use any other columns for classification.
+
+You must:
+- Return ONLY valid JSON.
+- Use EXACT label names provided.
+- Output "Abnormal" for any abnormal finding.
+- Output "Normal" for no abnormal finding mentioned.
+- Include ALL labels.
+- Do NOT include explanations.
+- Do NOT include extra fields.
+- Do NOT include markdown formatting.
+
+Definitions:
+- Abnormal = Abnormal finding present
+- Normal = No abnormal finding mentioned
+
+label_guidance = {{
+    "perihilar_infiltrate": "Increased opacity centered around the lung hilus; perihilar interstitial or alveolar pattern.",
+    
+    "pneumonia": "Alveolar lung pattern, air bronchograms, focal or lobar consolidation, especially cranioventral.",
+    
+    "bronchitis": "Thickened bronchial walls, donut or tramline signs, bronchial pulmonary pattern.",
+    
+    "interstitial": "Diffuse hazy lung opacity without full alveolar consolidation; reticular pattern.",
+    
+    "diseased_lungs": "Generalized abnormal pulmonary pattern; lungs not radiographically normal.",
+    
+    "hypo_plastic_trachea": "Uniformly narrowed tracheal lumen compared to expected diameter.",
+    
+    "cardiomegaly": "Enlarged cardiac silhouette; increased vertebral heart score (VHS).",
+    
+    "pulmonary_nodules": "Discrete round soft tissue opacities within lung fields.",
+    
+    "pleural_effusion": "Fluid in pleural space; retracted lung lobes; scalloped lung margins; obscured cardiac silhouette.",
+    
+    "rtm": "Right middle lung lobe consolidation or focal alveolar pattern.",
+    
+    "focal_caudodorsal_lung": "Localized opacity in caudodorsal lung fields.",
+    
+    "focal_perihilar": "Localized opacity centered at or near lung hilus.",
+    
+    "pulmonary_hypoinflation": "Reduced lung volume; crowded pulmonary vessels; elevated diaphragm.",
+    
+    "right_sided_cardiomegaly": "Enlargement of right atrium or ventricle; cranial cardiac border rounding.",
+    
+    "pericardial_effusion": "Globoid cardiac silhouette; enlarged heart with sharp margins; possible pleural effusion.",
+    
+    "bronchiectasis": "Dilated bronchi; lack of tapering bronchial walls; visible to lung periphery.",
+    
+    "pulmonary_vessel_enlargement": "Enlarged pulmonary arteries or veins relative to adjacent bronchi.",
+    
+    "left_sided_cardiomegaly": "Enlarged left atrium or ventricle; caudal cardiac border bulging.",
+    
+    "thoracic_lymphadenopathy": "Enlarged mediastinal or hilar lymph nodes; widened cranial mediastinum.",
+    
+    "esophagitis": "Esophageal wall thickening or gas dilation; possible megaesophagus signs."
+}}
 
 Data:
 {batch_df.to_json(orient="records")}
@@ -138,11 +190,13 @@ def main():
         batch_results = call_gemini(batch)
         all_results.extend(batch_results)
 
-    matrix = build_confusion_matrix(all_results)
+    print(all_results)
+
+    # matrix = build_confusion_matrix(all_results)
 
     output_file = f"confusion_matrix_test.xlsx"
 
-    write_confusion_excel(matrix, output_file)
+    # write_confusion_excel(matrix, output_file)
 
     print(f"Confusion matrix saved to: {output_file}")
 
