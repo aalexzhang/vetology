@@ -18,7 +18,7 @@ GEMINI_MODEL_URL = (
     "gemini-3-flash-preview:generateContent"
 )
 
-DEFAULT_BATCH_SIZE = 10
+DEFAULT_BATCH_SIZE = 5
 
 # file to extract a dataframe from the excel file indicated as the input.
 def read_excel(path):
@@ -31,6 +31,10 @@ def read_excel(path):
 
 # write the confusion matrix to a new excel file with some basic formatting.
 def write_confusion_excel(matrix_df, output_path):
+    if os.path.exists(output_path):
+        os.remove(output_path)
+        print(f"Deleted existing file: {output_path}")
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Confusion Matrix"
@@ -75,6 +79,10 @@ OUTPUT FORMAT REQUIREMENTS:
 You are a veterinary radiology classification system.
 
 Your task is to classify a canine thoracic radiology report into predefined binary labels.
+
+Return one JSON object per input case, matching the number of input rows.
+
+Do not return more or fewer JSON objects than the number of input cases. Each JSON object must have a "CaseID" field that matches the "CaseID" from the input data, along with the classification labels.
 
 Only use the report text in the columns labeled
 "Findings (original radiologist report)"
@@ -134,6 +142,7 @@ Data:
                                     "type": "object",
                                     "additionalProperties": False,
                                     "properties": {
+                                        "CaseID": {"type": "string"},
                                         "perihilar_infiltrate": {"type": "string", "enum": ["Normal", "Abnormal"]},
                                         "pneumonia": {"type": "string", "enum": ["Normal", "Abnormal"]},
                                         "bronchitis": {"type": "string", "enum": ["Normal", "Abnormal"]},
@@ -187,22 +196,16 @@ Data:
         )
 
         raw = response.choices[0].message.content
+        # print(f"Raw API response:\n{raw}")
         parsed = json.loads(raw)
         results = parsed["results"]
+
+        print(f"Batch returned {len(results)} lines.")
+
         return results
 
     except Exception as e:
         raise RuntimeError(f"OpenAI API error: {e}")
-
-# uses pd.crosstab to build a confusion matrix of true vs predicted.
-def build_confusion_matrix(results):
-    df = pd.DataFrame(results)
-    return pd.crosstab(
-        df["true_label"],
-        df["predicted_label"],
-        rownames=["Actual"],
-        colnames=["Predicted"]
-    )
 
 # Function to extract ground truth labels from specific cells in the Excel file
 def extract_ground_truth_labels(path):
@@ -370,13 +373,27 @@ def main():
 
     args = parser.parse_args()
 
-    # df = read_excel(args.input_file)
+    df = read_excel(args.input_file)
 
-    # all_results = []
+    all_results = []
+    batch_index = 1
     # for batch in batch_dataframe(df, args.batch_size):
-    #     print(f"Processing batch of {len(batch)} rows...")
-    #     batch_results = call_gpt(batch)
+    #     print(f"Processing batch {batch_index} of {len(batch)} rows...")
+    #     # print(f"Batch input data:\n{batch}")
+
+
+    #     for attempt in range(3):  # Retry up to 3 times, had trouble with gpt returning number of lines not matching input rows
+    #         try:
+    #             batch_results = call_gpt(batch)
+    #             if len(batch_results) == len(batch):
+    #                 break
+    #             else:
+    #                 print(f"Retrying batch {batch_index}, attempt {attempt + 1}")
+    #         except Exception as e:
+    #             print(f"Error on attempt {attempt + 1}: {e}")
+
     #     all_results.extend(batch_results)
+    #     batch_index += 1
 
     all_results = load_results_from_excel("all_results.xlsx")
 
@@ -441,9 +458,9 @@ def main():
             "Specificity": specificity
         }
 
-    print("Label-wise Sensitivity and Specificity:")
-    for label, metric in metrics.items():
-        print(f"{label}: Sensitivity = {metric['Sensitivity']:.2f}, Specificity = {metric['Specificity']:.2f}")
+    # print("Label-wise Sensitivity and Specificity:")
+    # for label, metric in metrics.items():
+    #     print(f"{label}: Sensitivity = {metric['Sensitivity']:.2f}, Specificity = {metric['Specificity']:.2f}")
 
     metrics_df = pd.DataFrame.from_dict(metrics, orient="index")
     metrics_df.reset_index(inplace=True)
