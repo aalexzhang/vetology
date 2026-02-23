@@ -122,7 +122,7 @@ Data:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt}
@@ -377,31 +377,31 @@ def main():
 
     all_results = []
     batch_index = 1
-    # for batch in batch_dataframe(df, args.batch_size):
-    #     print(f"Processing batch {batch_index} of {len(batch)} rows...")
-    #     # print(f"Batch input data:\n{batch}")
+    for batch in batch_dataframe(df, args.batch_size):
+        print(f"Processing batch {batch_index} of {len(batch)} rows...")
+        # print(f"Batch input data:\n{batch}")
 
 
-    #     for attempt in range(3):  # Retry up to 3 times, had trouble with gpt returning number of lines not matching input rows
-    #         try:
-    #             batch_results = call_gpt(batch)
-    #             if len(batch_results) == len(batch):
-    #                 break
-    #             else:
-    #                 print(f"Retrying batch {batch_index}, attempt {attempt + 1}")
-    #         except Exception as e:
-    #             print(f"Error on attempt {attempt + 1}: {e}")
+        for attempt in range(3):  # Retry up to 3 times, had trouble with gpt returning number of lines not matching input rows
+            try:
+                batch_results = call_gpt(batch)
+                if len(batch_results) == len(batch):
+                    break
+                else:
+                    print(f"Retrying batch {batch_index}, attempt {attempt + 1}")
+            except Exception as e:
+                print(f"Error on attempt {attempt + 1}: {e}")
 
-    #     all_results.extend(batch_results)
-    #     batch_index += 1
+        all_results.extend(batch_results)
+        batch_index += 1
 
-    all_results = load_results_from_excel("all_results.xlsx")
+    # all_results = load_results_from_excel("all_results.xlsx")
 
     # Save all_results to an Excel file
-    # all_results_df = pd.DataFrame(all_results)
-    # all_results_output_file = "all_results.xlsx"
-    # all_results_df.to_excel(all_results_output_file, index=False)
-    # print(f"All results saved to: {all_results_output_file}")
+    all_results_df = pd.DataFrame(all_results)
+    all_results_output_file = "all_results.xlsx"
+    all_results_df.to_excel(all_results_output_file, index=False)
+    print(f"All results saved to: {all_results_output_file}")
 
     # print(all_results)
 
