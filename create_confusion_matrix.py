@@ -13,11 +13,6 @@ from openai import OpenAI
 
 load_dotenv()
 
-GEMINI_MODEL_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-3-flash-preview:generateContent"
-)
-
 DEFAULT_BATCH_SIZE = 5
 
 # file to extract a dataframe from the excel file indicated as the input.
